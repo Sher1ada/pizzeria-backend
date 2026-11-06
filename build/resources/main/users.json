@@ -1,6 +1,0 @@
-[
-  { "username": "admin", "password": "123", "role": "ADMINISTRADOR", "nombre": "Carlos (Admin)" },
-  { "username": "super", "password": "123", "role": "SUPERVISOR", "nombre": "Ana (Supervisora)" },
-  { "username": "cliente", "password": "123", "role": "CLIENTE", "nombre": "Juan Pérez" },
-  { "username": "vendedor", "password": "123", "role": "VENDEDOR", "nombre": "Luis (Caja)" }
-]
