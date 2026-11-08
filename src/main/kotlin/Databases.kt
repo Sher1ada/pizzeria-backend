@@ -2,8 +2,9 @@ package com
 
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.net.URI
 
-// 1. Definición de la Tabla de Usuarios en PostgreSQL
+// 1. Definición de la Tabla de Usuarios
 object UsersTable : Table("users") {
     val username = varchar("username", 50)
     val password = varchar("password", 50)
@@ -14,22 +15,29 @@ object UsersTable : Table("users") {
 
 // 2. Función para conectar a Railway e insertar datos iniciales
 fun initDatabase() {
-    // Lee la URL de Railway o usa la de respaldo
-    val rawUrl = System.getenv("DATABASE_URL")
-        ?: "postgresql://postgres:VGHatOaBfbmmcVzVcQXFVKgkOKDsbLvU@shinkansen.proxy.rlwy.net:30166/railway"
+    val databaseUrl = System.getenv("DATABASE_URL")
 
-    // Formatear para el driver JDBC (debe iniciar con jdbc:postgresql://)
-    val jdbcUrl = when {
-        rawUrl.startsWith("jdbc:") -> rawUrl
-        rawUrl.startsWith("postgres://") -> rawUrl.replace("postgres://", "jdbc:postgresql://")
-        rawUrl.startsWith("postgresql://") -> "jdbc:$rawUrl"
-        else -> "jdbc:postgresql://$rawUrl"
+    val (jdbcUrl, dbUser, dbPassword) = if (!databaseUrl.isNullOrEmpty()) {
+        val cleanUrl = if (databaseUrl.startsWith("jdbc:")) databaseUrl.removePrefix("jdbc:") else databaseUrl
+        val uri = URI(cleanUrl)
+        val userInfo = uri.userInfo?.split(":")
+        val user = userInfo?.getOrNull(0) ?: System.getenv("PGUSER") ?: "postgres"
+        val password = userInfo?.getOrNull(1) ?: System.getenv("PGPASSWORD") ?: ""
+        val host = uri.host
+        val port = if (uri.port != -1) uri.port else 5432
+        val path = uri.path
+
+        Triple("jdbc:postgresql://$host:$port$path", user, password)
+    } else {
+        Triple(
+            "jdbc:postgresql://shinkansen.proxy.rlwy.net:30166/railway",
+            System.getenv("PGUSER") ?: "postgres",
+            System.getenv("PGPASSWORD") ?: "VGHatOaBfbmmcVzVcQXFVKgkOKDsbLvU"
+        )
     }
 
-    val dbUser = System.getenv("PGUSER") ?: "postgres"
-    val dbPassword = System.getenv("PGPASSWORD") ?: "VGHatOaBfbmmcVzVcQXFVKgkOKDsbLvU"
+    println(">>> CONECTANDO A POSTGRESQL: $jdbcUrl")
 
-    // Conectar pasando credenciales explícitas a Exposed
     Database.connect(
         url = jdbcUrl,
         driver = "org.postgresql.Driver",
@@ -37,7 +45,6 @@ fun initDatabase() {
         password = dbPassword
     )
 
-    // Crear esquemas e insertar datos de prueba
     transaction {
         SchemaUtils.create(UsersTable)
 
@@ -49,4 +56,6 @@ fun initDatabase() {
             }
         }
     }
+
+    println(">>> BASE DE DATOS INICIALIZADA CORRECTAMENTE <<<")
 }
