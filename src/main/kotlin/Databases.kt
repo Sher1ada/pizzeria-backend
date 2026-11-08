@@ -14,18 +14,34 @@ object UsersTable : Table("users") {
 
 // 2. Función para conectar a Railway e insertar datos iniciales
 fun initDatabase() {
-    // Formato correcto para el driver JDBC de PostgreSQL
-    val jdbcUrl = "jdbc:postgresql://shinkansen.proxy.rlwy.net:30166/railway?user=postgres&password=VGHatOaBfbmmcVzVcQXFVKgkOKDsbLvU"
+    // Lee la URL de Railway o usa la de respaldo
+    val rawUrl = System.getenv("DATABASE_URL")
+        ?: "postgresql://postgres:VGHatOaBfbmmcVzVcQXFVKgkOKDsbLvU@shinkansen.proxy.rlwy.net:30166/railway"
 
+    // Formatear para el driver JDBC (debe iniciar con jdbc:postgresql://)
+    val jdbcUrl = when {
+        rawUrl.startsWith("jdbc:") -> rawUrl
+        rawUrl.startsWith("postgres://") -> rawUrl.replace("postgres://", "jdbc:postgresql://")
+        rawUrl.startsWith("postgresql://") -> "jdbc:$rawUrl"
+        else -> "jdbc:postgresql://$rawUrl"
+    }
+
+    val dbUser = System.getenv("PGUSER") ?: "postgres"
+    val dbPassword = System.getenv("PGPASSWORD") ?: "VGHatOaBfbmmcVzVcQXFVKgkOKDsbLvU"
+
+    // Conectar pasando credenciales explícitas a Exposed
     Database.connect(
         url = jdbcUrl,
-        driver = "org.postgresql.Driver"
+        driver = "org.postgresql.Driver",
+        user = dbUser,
+        password = dbPassword
     )
 
+    // Crear esquemas e insertar datos de prueba
     transaction {
         SchemaUtils.create(UsersTable)
 
-        if (UsersTable.selectAll().count() == 0L) {
+        if (UsersTable.selectAll().empty()) {
             UsersTable.insert {
                 it[username] = "admin"
                 it[password] = "1234"
