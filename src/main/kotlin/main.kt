@@ -7,7 +7,10 @@ fun main() {
 
     initDatabase()
 
-    embeddedServer(CIO, port = 8080, host = "0.0.0.0") {
+    // Lee el puerto asignado por el servidor en la nube o usa 8080 para pruebas locales
+    val port = System.getenv("PORT")?.toInt() ?: 8080
+
+    embeddedServer(CIO, port = port, host = "0.0.0.0") {
         configureHttp()
         configureSerialization()
         configureRouting()
