@@ -32,8 +32,12 @@ data class Product(
     val price: Double,
     val category: String
 )
+
 // 2. Configuración general de rutas
 fun Application.configureRouting() {
+    // LLAMADA CRÍTICA: Inicializa la base de datos al cargar las rutas
+    initDatabase()
+
     routing {
         // Estado del servidor
         get("/") {
@@ -73,7 +77,7 @@ fun Application.configureRouting() {
             }
         }
 
-        // Endpoint del Catálogo de Productos (Sin imágenes)
+        // Endpoint del Catálogo de Productos
         get("/products") {
             val sampleProducts = listOf(
                 Product(
